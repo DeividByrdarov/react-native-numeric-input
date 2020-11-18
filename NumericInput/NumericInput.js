@@ -12,27 +12,27 @@ export default class NumericInput extends Component {
         super(props)
         const noInitSent = props.initValue !== 0 && !props.initValue
         this.state = {
-            value: noInitSent ? props.value ? props.value : 0 : props.initValue,
-            lastValid: noInitSent ? props.value ? props.value : 0 : props.initValue,
-            stringValue: (noInitSent ? props.value ? props.value : 0 : props.initValue).toString(),
+            value: noInitSent ? typeof props.value === 'number' ? props.value : 0 : props.initValue,
+            lastValid: noInitSent ? typeof props.value === 'number' ? props.value : 0 : props.initValue,
+            stringValue: (noInitSent ? typeof props.value === 'number' ? props.labelExtractor ? props.labelExtractor(props.value) : props.value : 0 : props.initValue).toString(),
         }
         this.ref = null
     }
 
     // this.props refers to the new props
     componentDidUpdate() {
-        const initSent = !(this.props.initValue !== 0 && !this.props.initValue); 
+        const initSent = !(this.props.initValue !== 0 && !this.props.initValue);
 
         // compare the new value (props.initValue) with the existing/old one (this.state.value)
         if (this.props.initValue !== this.state.value && initSent) {
             this.setState({
                 value: this.props.initValue,
                 lastValid: this.props.initValue,
-                stringValue: this.props.initValue.toString()
+                stringValue: this.props.labelExtractor ? this.props.labelExtractor(this.props.initValue) : this.props.initValue.toString()
             });
         }
     }
-    
+
     updateBaseResolution = (width, height) => {
         calcSize = create({ width, height })
     }
@@ -41,11 +41,11 @@ export default class NumericInput extends Component {
         if (this.props.maxValue === null || (value + this.props.step < this.props.maxValue)) {
             value = (value + this.props.step).toFixed(12)
             value = this.props.valueType === 'real' ? parseFloat(value) : parseInt(value)
-            this.setState({ value, stringValue: value.toString() })
+            this.setState({ value, stringValue: this.props.labelExtractor ? this.props.labelExtractor(value) : value.toString() })
         } else if (this.props.maxValue !== null) {
             this.props.onLimitReached(true, 'Reached Maximum Value!')
             value = this.props.maxValue
-            this.setState({ value, stringValue: value.toString() })
+            this.setState({ value, stringValue: this.props.labelExtractor ? this.props.labelExtractor(value) : value.toString() })
 
         }
         if (value !== this.props.value)
@@ -62,7 +62,7 @@ export default class NumericInput extends Component {
         }
         if (value !== this.props.value)
             this.props.onChange && this.props.onChange(Number(value))
-        this.setState({ value, stringValue: value.toString() })
+        this.setState({ value, stringValue: this.props.labelExtractor ? this.props.labelExtractor(value) : value.toString() })
     }
     isLegalValue = (value, mReal, mInt) => value === '' || (((this.props.valueType === 'real' && mReal(value)) || (this.props.valueType !== 'real' && mInt(value))) && (this.props.maxValue === null || (parseFloat(value) <= this.props.maxValue)) && (this.props.minValue === null || (parseFloat(value) >= this.props.minValue)))
 
@@ -81,7 +81,7 @@ export default class NumericInput extends Component {
             return
         }
         if ((value.charAt(value.length - 1) === '.')) {
-            this.setState({ stringValue: value })
+            this.setState({ stringValue: this.props.labelExtractor ? this.props.labelExtractor(value) : value })
             return
         }
         let legal = this.isLegalValue(value, this.realMatch, this.intMatch)
@@ -105,19 +105,23 @@ export default class NumericInput extends Component {
             }
 
         } else if (!legal && this.props.validateOnBlur) {
-            this.setState({ stringValue: value })
-            let parsedValue = this.props.valueType === 'real' ? parseFloat(value) : parseInt(value)
-            parsedValue = isNaN(parsedValue) ? 0 : parsedValue
-            if (parsedValue !== this.props.value)
-                this.props.onChange && this.props.onChange(parsedValue)
-            this.setState({ value: parsedValue, legal, stringValue: parsedValue.toString() })
+          this.setState({ stringValue: this.props.labelExtractor ? this.props.labelExtractor(value) : value })
+          let parsedValue = this.props.valueType === 'real' ? parseFloat(value) : parseInt(value)
+          parsedValue = isNaN(parsedValue) ? 0 : parsedValue
+          if (parsedValue !== this.props.value)
+            this.props.onChange && this.props.onChange(parsedValue)
+          this.setState({
+            value: parsedValue,
+            legal,
+            // stringValue: this.props.labelExtractor ? this.props.labelExtractor(parsedValue) : parsedValue.toString()
+          })
         } else {
-            this.setState({ stringValue: value })
+            this.setState({ stringValue: this.props.labelExtractor ? this.props.labelExtractor(value) : value })
             let parsedValue = this.props.valueType === 'real' ? parseFloat(value) : parseInt(value)
             parsedValue = isNaN(parsedValue) ? 0 : parsedValue
             if (parsedValue !== this.props.value)
                 this.props.onChange && this.props.onChange(parsedValue)
-            this.setState({ value: parsedValue, legal, stringValue: parsedValue.toString() })
+            this.setState({ value: parsedValue, legal })
 
         }
     }
@@ -139,7 +143,7 @@ export default class NumericInput extends Component {
                     setTimeout(() => {
                         this.props.onChange && this.props.onChange(this.state.lastValid)
                         this.setState({ value: this.state.lastValid }, () => {
-                            this.setState({ value: this.state.lastValid, stringValue: this.state.lastValid.toString() })
+                            this.setState({ value: this.state.lastValid, stringValue: this.props.labelExtractor ? this.props.labelExtractor(this.state.lastValid) : this.state.lastValid.toString() })
                             this.props.onChange && this.props.onChange(this.state.lastValid)
                         })
                     }, 10)
@@ -298,6 +302,7 @@ NumericInput.propTypes = {
     initValue: PropTypes.number,
     onChange: PropTypes.func.isRequired,
     onLimitReached: PropTypes.func,
+    labelExtractor: PropTypes.func,
     value: PropTypes.number,
     minValue: PropTypes.number,
     maxValue: PropTypes.number,

@@ -24,6 +24,7 @@ declare module 'react-native-numeric-input' {
     leftButtonBackgroundColor?: Color
     totalHeight?: number
     onChange: (value: number) => void
+    labelExtractor?: (value: string | number) => string | number
     onLimitReached?: (isMax: boolean, msg: string) => void
     editable?: boolean
     validateOnBlur?: boolean
